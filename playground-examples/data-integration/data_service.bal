@@ -29,15 +29,58 @@ service<http:Service> data_service bind dataServiceEP {
 
     @Description {value:"Resource that retrieves customer creation requts and insert the customers into the database."}
     @http:ResourceConfig {
-        methods:["POST"],
-        path:"/customer"
+        methods:["POST"], path:"/customer", consumes:["application/json"], produces:["application/json"]
     }
     customers (endpoint client, http:Request req) {
-
+        http:Response res = {};
+        json customer;
+        json responsePayload;
+        string name = "";
+        int age;
         // Retrieve customer data from request.
-        json customerReq =? req.getJsonPayload();
-        string name = customerReq.name.toString();
-        int age =? <int> customerReq.age.toString();
+        var customerReqVar = req.getJsonPayload();
+        match customerReqVar {
+            // Valid JSON payload
+            json customerReq => {
+                customer = customerReq;
+            }
+            // NOT a valid JSON payload
+            any | null => {
+                responsePayload = {"Message":"Invalid payload - Not a valid JSON payload"};
+                res.setJsonPayload(responsePayload);
+                _ = client -> respond(res);
+                return;
+            }
+        }
+
+        match customer.name {
+            string nameVal => {
+                name = nameVal;
+            }
+            // Error accessing field 'name'
+            any | null => {
+                responsePayload = {"Message":"Invalid payload - Error in field 'name'"};
+                res.setJsonPayload(responsePayload);
+                _ = client -> respond(res);
+                return;
+            }
+        }
+
+        match customer.age {
+            int ageVal => {
+                age = ageVal;
+            }
+            // Error accessing field 'age' or invalid value
+            any | null => {
+                responsePayload = {"Message":"Invalid payload - Error in field 'age' or invalid value specified"};
+                res.setJsonPayload(responsePayload);
+                _ = client -> respond(res);
+                return;
+            }
+        }
+
+        //string name = customerReq.name.toString();
+        //int age =? <int> customerReq.age.toString();
 
         sql:Parameter[] params = [];
         sql:Parameter para1 = {sqlType:sql:Type.VARCHAR, value:name};
@@ -50,9 +93,8 @@ service<http:Service> data_service bind dataServiceEP {
         table dt =? customers_db -> select("SELECT * FROM CUSTOMER", null, null);
 
         // Transform data table into JSON
-        var response =? <json>dt;
-        http:Response res = {};
-        res.setJsonPayload(response);
+        responsePayload =? <json>dt;
+        res.setJsonPayload(responsePayload);
         // Respond back to the client.
         _ = client -> respond(res);
 
