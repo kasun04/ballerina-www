@@ -36,8 +36,8 @@ service<http:Service> data_service bind dataServiceEP {
 
         // Retrieve customer data from request.
         json customerReq =? req.getJsonPayload();
-        string name =? <string> customerReq.name;
-        int age =? <int> customerReq.age;
+        string name = customerReq.name.toString();
+        int age =? <int> customerReq.age.toString();
 
         sql:Parameter[] params = [];
         sql:Parameter para1 = {sqlType:sql:Type.VARCHAR, value:name};
