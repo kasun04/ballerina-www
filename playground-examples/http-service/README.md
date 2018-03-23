@@ -1,6 +1,5 @@
 
-
-Sample requests: 
+## HTTP Service
 
 ``` 
 Exiting order: 
